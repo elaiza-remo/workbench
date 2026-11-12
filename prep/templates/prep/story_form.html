@@ -1,0 +1,139 @@
+{% extends "prep/base.html" %}
+{% block title %}{% if story %}Edit story{% else %}New story{% endif %}{% endblock %}
+{% block content %}
+<p class="crumb"><a href="{{ back_url }}">← Back</a></p>
+<h1>{% if story %}Edit story{% else %}New story{% endif %}</h1>
+
+<form method="post" id="story-form">
+  {% csrf_token %}
+  {{ form.non_field_errors }}
+
+  <section class="card question-banner">
+    <h2 class="subhead">{% if attached|length > 1 %}Questions this answers{% else %}The question{% endif %}</h2>
+    <ul id="attached-questions" class="attached-list">
+      {% for q in attached %}
+        <li class="attached-question">
+          <div class="attached-body">
+            <span class="chip chip-{{ q.category }}">{{ q.get_category_display }}</span>
+            <p class="attached-text">{{ q.text }}</p>
+            {% with names=q.companies %}{% if names %}<p class="seen-line small">Seen at {{ names|join:", " }}</p>{% endif %}{% endwith %}
+            {% if q.notes %}<p class="attached-notes small"><strong>Your notes:</strong> {{ q.notes|linebreaksbr }}</p>{% endif %}
+          </div>
+          <label class="attached-toggle small"><input type="checkbox" name="questions" value="{{ q.pk }}" checked> Linked</label>
+        </li>
+      {% endfor %}
+    </ul>
+    {% if not attached %}
+      <p id="no-question" class="muted small">Writing this for a particular question? Pick it below so it stays in view while you write. You can also leave it blank and link questions later.</p>
+    {% endif %}
+
+    {% if available %}
+      <div class="question-picker-row">
+        <label for="question-picker" class="small muted">Attach {% if attached %}another{% else %}a{% endif %} question</label>
+        <select id="question-picker" name="questions">
+          <option value="">Choose a question…</option>
+          {% regroup available by get_category_display as groups %}
+          {% for group in groups %}
+            <optgroup label="{{ group.grouper }}">
+              {% for q in group.list %}
+                <option value="{{ q.pk }}" data-text="{{ q.text }}" data-category="{{ q.category }}" data-label="{{ q.get_category_display }}" data-notes="{{ q.notes }}">{{ q.text|truncatechars:90 }}</option>
+              {% endfor %}
+            </optgroup>
+          {% endfor %}
+        </select>
+      </div>
+    {% endif %}
+
+    <template id="attached-template">
+      <li class="attached-question">
+        <div class="attached-body">
+          <span class="chip"></span>
+          <p class="attached-text"></p>
+          <p class="attached-notes small" hidden><strong>Your notes:</strong> <span></span></p>
+        </div>
+        <label class="attached-toggle small"><input type="checkbox" name="questions" checked> Linked</label>
+      </li>
+    </template>
+  </section>
+
+  <div class="story-layout">
+    <aside class="card brainstorm">
+      <label for="{{ form.brainstorm.id_for_label }}"><h2>Brainstorm</h2></label>
+      <p class="help">Messy is fine, and only you see this. Get everything down first, then shape the best parts into STAR.</p>
+      {{ form.brainstorm }}
+      <details class="prompts">
+        <summary>Stuck? Try these prompts</summary>
+        <ul>
+          <li>What was actually hard about it? What made it more than routine?</li>
+          <li>What would have happened if you hadn't stepped in?</li>
+          <li>What did <em>you</em> do, as opposed to the team?</li>
+          <li>What options did you consider, and why did you pick the one you did?</li>
+          <li>Any numbers? Time saved, users affected, bugs fixed, tickets closed, percent faster.</li>
+          <li>What did someone say afterwards (a manager, a user, a teammate)?</li>
+          <li>What did you learn, or what would you do differently?</li>
+        </ul>
+      </details>
+    </aside>
+
+    <div class="card story-main">
+      {% include "prep/_field.html" with field=form.title %}
+      <div class="grid-2 tight">
+        {% include "prep/_field.html" with field=form.project %}
+        {% include "prep/_field.html" with field=form.new_project %}
+      </div>
+
+      <fieldset class="star-fieldset">
+        <legend>STAR</legend>
+        <p class="help">Keep Situation and Task short. Spend most of your words on Action ("I", not "we"), and end with a concrete Result.</p>
+        {% include "prep/_field.html" with field=form.situation %}
+        {% include "prep/_field.html" with field=form.task %}
+        {% include "prep/_field.html" with field=form.action %}
+        {% include "prep/_field.html" with field=form.result %}
+      </fieldset>
+
+      {% include "prep/_field.html" with field=form.tags_text %}
+      <datalist id="tag-suggestions">{% for tag in tags %}<option value="{{ tag.name }}">{% endfor %}</datalist>
+
+      <div class="form-actions">
+        <button class="btn btn-primary" type="submit">Save story</button>
+        <a class="link-quiet" href="{{ back_url }}">Cancel</a>
+      </div>
+      <p class="help">Only have brainstorm notes so far? Give it a title and save; you can come back to fill in STAR.</p>
+    </div>
+  </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Picking a question from the dropdown adds it to the banner straight away.
+  (function () {
+    const picker = document.getElementById("question-picker");
+    const list = document.getElementById("attached-questions");
+    const tpl = document.getElementById("attached-template");
+    if (!picker || !tpl) return;
+    picker.addEventListener("change", () => {
+      const opt = picker.selectedOptions[0];
+      if (!opt || !opt.value) return;
+      const node = tpl.content.firstElementChild.cloneNode(true);
+      node.querySelector("input").value = opt.value;
+      node.querySelector(".attached-text").textContent = opt.dataset.text;
+      const chip = node.querySelector(".chip");
+      chip.textContent = opt.dataset.label;
+      chip.classList.add("chip-" + opt.dataset.category);
+      if (opt.dataset.notes) {
+        const notes = node.querySelector(".attached-notes");
+        notes.querySelector("span").textContent = opt.dataset.notes;
+        notes.hidden = false;
+      }
+      list.appendChild(node);
+      const group = opt.parentElement;
+      opt.remove();
+      if (group.tagName === "OPTGROUP" && !group.children.length) group.remove();
+      picker.value = "";
+      const empty = document.getElementById("no-question");
+      if (empty) empty.remove();
+    });
+  })();
+</script>
+{% endblock %}

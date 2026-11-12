@@ -1,0 +1,142 @@
+{% extends "journal/base.html" %}
+{% block title %}{{ project.name }}{% endblock %}
+{% block content %}
+<p class="crumb"><a href="{% url 'journal:project_list' %}">← Projects</a></p>
+<div class="page-head">
+  <div>
+    <div class="title-row">
+      <h1>{{ project.name }}</h1>
+      <span class="status-chip status-{{ project.status }}">{{ project.get_status_display }}</span>
+    </div>
+    {% if project.tech_stack %}<p class="tech">{{ project.tech_stack }}</p>{% endif %}
+    {% if project.description %}<p class="lede">{{ project.description|linebreaksbr }}</p>{% endif %}
+    <p class="muted small">
+      {% if project.started_on %}Started {{ project.started_on|date:"M Y" }}{% endif %}
+      {% if project.repo_url %}{% if project.started_on %} · {% endif %}<a href="{{ project.repo_url }}" target="_blank" rel="noopener">Repo ↗</a>{% endif %}
+      {% if project.repo_path %}{% if project.started_on or project.repo_url %} · {% endif %}<code>{{ project.repo_path }}</code>{% endif %}
+    </p>
+  </div>
+  <div class="actions">
+    <a class="btn btn-primary" href="{% url 'journal:note_create' %}?project={{ project.pk }}">New note</a>
+    <a class="btn" href="{% url 'journal:project_questions' project.pk %}">Practice questions</a>
+    <a class="btn" href="{% url 'journal:project_update' project.pk %}">Edit</a>
+    <a class="btn btn-danger-quiet" href="{% url 'journal:project_delete' project.pk %}">Delete</a>
+  </div>
+</div>
+
+<nav class="tabs" aria-label="Project sections">
+  <a href="?tab=notes" {% if tab == "notes" %}aria-current="page"{% endif %}>Notes <span class="count">{{ note_count }}</span></a>
+  <a href="?tab=commits" {% if tab == "commits" %}aria-current="page"{% endif %}>Commits <span class="count">{{ commit_count }}</span></a>
+  <a href="?tab=stories" {% if tab == "stories" %}aria-current="page"{% endif %}>Interview stories <span class="count">{{ story_count }}</span></a>
+</nav>
+
+{% if practice_count %}
+  <div class="practice-strip">
+    <span><strong>{{ practice_count }}</strong> practice question{{ practice_count|pluralize }} from this project</span>
+    <a class="btn btn-small btn-primary" href="{% url 'prep:practice' %}?project={{ project.pk }}&amp;mode=random">Practise this project</a>
+    <a class="link-quiet small" href="{% url 'prep:question_list' %}?project={{ project.pk }}">See them</a>
+  </div>
+{% endif %}
+
+{% if tab == "commits" %}
+  <div class="tab-toolbar">
+    <form class="filters" method="get">
+      <input type="hidden" name="tab" value="commits">
+      <input type="search" name="q" value="{{ q }}" placeholder="Search commit messages or hash…" aria-label="Search commits">
+      <select name="filter" aria-label="Filter commits">
+        <option value="">All commits</option>
+        <option value="noted" {% if commit_filter == "noted" %}selected{% endif %}>Only commits with notes</option>
+      </select>
+      <button class="btn" type="submit">Filter</button>
+    </form>
+    {% if can_sync %}
+      <form method="post" action="{% url 'journal:project_sync' project.pk %}">
+        {% csrf_token %}
+        <button class="btn" type="submit">Import new commits</button>
+      </form>
+    {% endif %}
+  </div>
+
+  {% if not can_sync and not page.paginator.count %}
+    <section class="card callout">
+      <h2>Connect a repo to import commits</h2>
+      <p>Add the project's GitHub link, e.g. <code>https://github.com/you/{{ project.name|slugify }}</code>. Then click <strong>Import new commits</strong> whenever you want to catch up. When you run Workbench on your own computer, a local repo folder works too.</p>
+      <a class="btn btn-primary" href="{% url 'journal:project_update' project.pk %}">Add repo link</a>
+    </section>
+  {% elif page.paginator.count %}
+    <ul class="commit-list card">
+      {% for c in page %}
+        <li class="commit-row">
+          <a class="sha" href="{{ c.get_absolute_url }}"><code>{{ c.short_sha }}</code></a>
+          <div class="commit-main">
+            <a class="commit-subject" href="{{ c.get_absolute_url }}">{{ c.subject }}</a>
+            <p class="muted small">
+              {{ c.committed_at|date:"M j, Y" }} · {{ c.author }}
+              {% if c.files_changed %} · <span class="plus">+{{ c.insertions }}</span> <span class="minus">−{{ c.deletions }}</span>{% endif %}
+            </p>
+          </div>
+          <div class="commit-actions">
+            {% if c.note_count %}<span class="badge badge-due">{{ c.note_count }} note{{ c.note_count|pluralize }}</span>{% endif %}
+            <a class="btn btn-small" href="{% url 'journal:note_create' %}?commit={{ c.pk }}">Add note</a>
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+    {% if page.has_other_pages %}
+      <nav class="pager">
+        {% if page.has_previous %}<a class="btn btn-small" href="?tab=commits&amp;q={{ q|urlencode }}&amp;filter={{ commit_filter }}&amp;page={{ page.previous_page_number }}">← Newer</a>{% endif %}
+        <span class="muted small">Page {{ page.number }} of {{ page.paginator.num_pages }}</span>
+        {% if page.has_next %}<a class="btn btn-small" href="?tab=commits&amp;q={{ q|urlencode }}&amp;filter={{ commit_filter }}&amp;page={{ page.next_page_number }}">Older →</a>{% endif %}
+      </nav>
+    {% endif %}
+  {% elif q or commit_filter %}
+    <div class="empty"><p>No commits match.</p></div>
+  {% else %}
+    <div class="empty"><p>No commits imported yet. Click <strong>Import new commits</strong>.</p></div>
+  {% endif %}
+
+{% elif tab == "stories" %}
+  {% if stories %}
+    <ul class="card-list">
+      {% for story in stories %}
+        <li class="card">
+          <h3><a href="{{ story.get_absolute_url }}">{{ story.title }}</a></h3>
+          {% if not story.is_complete %}<span class="badge badge-warn">needs {{ story.missing_parts|join:", " }}</span>{% endif %}
+          {% include "prep/_tags.html" with tags=story.tags.all link_to="prep:story_list" %}
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <div class="empty">
+      <p>No interview stories from this project yet. Open any decision or issue note and click <strong>Turn into interview story</strong>.</p>
+    </div>
+  {% endif %}
+
+{% else %}
+  <div class="kind-filter">
+    <a href="?tab=notes" class="kind-pill{% if not active_kind %} is-active{% endif %}">All <span>{{ note_count }}</span></a>
+    {% for value, label, n in kind_counts %}
+      <a href="?tab=notes&amp;kind={{ value }}" class="kind-pill kind-{{ value }}{% if active_kind == value %} is-active{% endif %}">{{ label }} <span>{{ n }}</span></a>
+    {% endfor %}
+    {% if note_count %}<a class="link-quiet small export-link" href="{% url 'journal:note_export' %}?project={{ project.pk }}{% if active_kind %}&amp;kind={{ active_kind }}{% endif %}">Export as Markdown ↓</a>{% endif %}
+  </div>
+
+  {% if notes %}
+    <div class="note-stack">
+      {% for note in notes %}{% include "journal/_note_card.html" %}{% endfor %}
+    </div>
+  {% else %}
+    <div class="empty">
+      {% if active_kind %}
+        <p>No notes of this type yet.</p>
+        <a class="btn btn-primary" href="{% url 'journal:note_create' %}?project={{ project.pk }}&amp;kind={{ active_kind }}">Add one</a>
+      {% else %}
+        <p>Nothing logged yet. Start with the last decision you made on this project.</p>
+        <div class="actions centered">
+          {% for value, label in kinds %}<a class="btn btn-small" href="{% url 'journal:note_create' %}?project={{ project.pk }}&amp;kind={{ value }}">+ {{ label }}</a>{% endfor %}
+        </div>
+      {% endif %}
+    </div>
+  {% endif %}
+{% endif %}
+{% endblock %}

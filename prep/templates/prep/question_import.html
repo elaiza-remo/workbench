@@ -1,0 +1,84 @@
+{% extends "prep/base.html" %}
+{% block title %}Add questions{% endblock %}
+{% block content %}
+<p class="crumb"><a href="{% url 'prep:question_list' %}">← Questions</a></p>
+<h1>Add questions you've seen</h1>
+<p class="lede">Paste questions from a job application, an interview you just finished, or your notes. You'll get a preview to tidy up before anything is saved.</p>
+
+<form method="post" id="import-form">
+  {% csrf_token %}
+  <div class="import-layout">
+    <section class="card">
+      {% include "prep/_field.html" with field=form.text %}
+      <button class="btn{% if not rows %} btn-primary{% endif %}" type="submit" name="action" value="preview">
+        {% if rows %}Re-read pasted text{% else %}Preview questions{% endif %}
+      </button>
+    </section>
+
+    <section class="card">
+      <h2>Where did you see these?</h2>
+      {% include "prep/_field.html" with field=form.source %}
+      {% include "prep/_field.html" with field=form.company %}
+      {% include "prep/_field.html" with field=form.seen_on %}
+      {% include "prep/_field.html" with field=form.category %}
+      {% include "prep/_field.html" with field=form.tags_text %}
+    </section>
+  </div>
+
+  {% if rows %}
+  <section class="card preview">
+    <div class="page-head">
+      <div>
+        <h2>Preview</h2>
+        <p class="muted small">
+          Found {{ rows|length }} question{{ rows|length|pluralize }}, {{ new_count }} new.
+          Edit the wording or category, and untick anything you don't want.
+          Questions you already have aren't duplicated — they're logged as another sighting so you can see what comes up most.
+        </p>
+      </div>
+    </div>
+
+    <ul class="preview-rows">
+      {% for row in rows %}
+        <li class="preview-row{% if row.existing %} is-existing{% endif %}">
+          <label class="preview-check" title="Include this question">
+            <input type="checkbox" name="row_include" value="{{ forloop.counter0 }}" {% if row.likely or row.existing %}checked{% endif %}>
+            <span class="visually-hidden">Include</span>
+          </label>
+          <div class="preview-main">
+            <input type="text" name="row_text" value="{{ row.text }}" maxlength="500" aria-label="Question {{ forloop.counter }}">
+            {% if not row.likely and not row.existing %}
+              <p class="small muted">Doesn't look like a question, so it's unticked. Tick it to keep it.</p>
+            {% endif %}
+            {% if row.existing %}
+              <p class="small muted">Already in your library as <a href="{{ row.existing.get_absolute_url }}" target="_blank" rel="noopener">“{{ row.existing.text|truncatechars:80 }}”</a></p>
+            {% endif %}
+          </div>
+          <select name="row_category" aria-label="Category for question {{ forloop.counter }}">
+            {% for value, label in categories %}<option value="{{ value }}" {% if value == row.category %}selected{% endif %}>{{ label }}</option>{% endfor %}
+          </select>
+          <span class="badge {% if row.existing %}badge-repeat{% else %}badge-new{% endif %}">{% if row.existing %}seen before{% else %}new{% endif %}</span>
+        </li>
+      {% endfor %}
+    </ul>
+
+    <div class="form-actions">
+      <button class="btn btn-primary" type="submit" name="action" value="import">Import selected</button>
+      <a class="link-quiet" href="{% url 'prep:question_import' %}">Start over</a>
+    </div>
+  </section>
+  {% endif %}
+
+  <datalist id="tag-suggestions">{% for tag in tags %}<option value="{{ tag.name }}">{% endfor %}</datalist>
+  <datalist id="company-suggestions">{% for c in companies %}<option value="{{ c }}">{% endfor %}</datalist>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Enter inside an edited preview row shouldn't re-read the pasted text and lose edits.
+  document.querySelectorAll("input[name=row_text]").forEach((el) =>
+    el.addEventListener("keydown", (e) => { if (e.key === "Enter") e.preventDefault(); })
+  );
+</script>
+{% endblock %}

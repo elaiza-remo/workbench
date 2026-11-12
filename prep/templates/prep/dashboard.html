@@ -1,0 +1,111 @@
+{% extends "prep/base.html" %}
+{% block title %}Home{% endblock %}
+{% block content %}
+<section class="hero">
+  <div>
+    <h1>Ready when they ask.</h1>
+    <p class="lede">
+      {% if due_count %}
+        You have <strong>{{ due_count }}</strong> question{{ due_count|pluralize }} due for review.
+      {% elif question_count %}
+        You're caught up on reviews. Nice.
+      {% else %}
+        Start by adding your stories and a few questions.
+      {% endif %}
+    </p>
+  </div>
+  <div class="hero-actions">
+    <a class="btn btn-primary" href="{% url 'prep:practice' %}">Start practising</a>
+    <a class="btn" href="{% url 'prep:story_create' %}">New story</a>
+    <a class="btn" href="{% url 'prep:question_import' %}">Paste questions</a>
+  </div>
+</section>
+
+<section class="stats">
+  <a class="stat" href="{% url 'prep:story_list' %}"><span class="stat-num">{{ story_count }}</span><span class="stat-label">stories</span></a>
+  <a class="stat" href="{% url 'prep:question_list' %}"><span class="stat-num">{{ question_count }}</span><span class="stat-label">questions</span></a>
+  <a class="stat" href="{% url 'prep:history' %}"><span class="stat-num">{{ attempt_count }}</span><span class="stat-label">practice runs</span></a>
+  <div class="stat"><span class="stat-num">{{ streak }}</span><span class="stat-label">day streak</span></div>
+</section>
+
+{% if not question_count %}
+<section class="card callout">
+  <h2>No questions yet</h2>
+  <p>Load a starter set of 30 common behavioural and technical questions by running this in your terminal:</p>
+  <pre><code>python manage.py seed_questions</code></pre>
+  <p>Or <a href="{% url 'prep:question_create' %}">add your own</a>.</p>
+</section>
+{% endif %}
+
+<div class="grid-2">
+  <section class="card">
+    <h2>Gaps to fill</h2>
+    {% if uncovered_count or incomplete_count %}
+      {% if uncovered_count %}
+        <h3 class="subhead">{{ uncovered_count }} behavioural question{{ uncovered_count|pluralize }} with no story</h3>
+        <ul class="plain-list">
+          {% for q in uncovered_questions %}<li>{{ q.text }} <a class="small" href="{% url 'prep:story_create' %}?question={{ q.pk }}">write a story →</a></li>{% endfor %}
+        </ul>
+      {% endif %}
+      {% if incomplete_count %}
+        <h3 class="subhead">{{ incomplete_count }} stor{{ incomplete_count|pluralize:"y,ies" }} missing STAR parts</h3>
+        <ul class="plain-list">
+          {% for s in incomplete_stories %}<li><a href="{% url 'prep:story_update' s.pk %}">{{ s.title }}</a> <span class="muted">— needs {{ s.missing_parts|join:", " }}</span></li>{% endfor %}
+        </ul>
+      {% endif %}
+    {% else %}
+      <p class="muted">No gaps. Every behavioural question has a story, and every story is complete.</p>
+    {% endif %}
+  </section>
+
+  <section class="card">
+    <h2>Story coverage by theme</h2>
+    {% if tag_coverage %}
+      <ul class="coverage">
+        {% for tag in tag_coverage %}
+          <li class="{% if not tag.n %}is-empty{% endif %}">
+            <a href="{% url 'prep:story_list' %}?tag={{ tag.name|urlencode }}">{{ tag.name }}</a>
+            <span class="count">{{ tag.n }}</span>
+          </li>
+        {% endfor %}
+      </ul>
+      <p class="help">Themes with 0 stories are ones an interviewer could catch you on.</p>
+    {% else %}
+      <p class="muted">Tag your stories (conflict, failure, leadership…) to see which themes you've covered.</p>
+    {% endif %}
+  </section>
+</div>
+
+{% if most_seen %}
+<section class="card">
+  <div class="page-head tight-head">
+    <h2>Questions you keep seeing</h2>
+    <a class="link-quiet small" href="{% url 'prep:question_list' %}?sort=seen&amp;seen=any">See all →</a>
+  </div>
+  <ul class="attempt-list">
+    {% for q in most_seen %}
+      <li>
+        <span class="count-pill">{{ q.n }}×</span>
+        <a href="{% url 'prep:question_detail' q.pk %}">{{ q.text }}</a>
+        {% with names=q.companies %}{% if names %}<span class="muted small">{{ names|join:", " }}</span>{% endif %}{% endwith %}
+      </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+{% if recent_attempts %}
+<section class="card">
+  <h2>Recent practice</h2>
+  <ul class="attempt-list">
+    {% for a in recent_attempts %}
+      <li>
+        <span class="rating-pill r{{ a.rating }}">{{ a.rating_short }}</span>
+        <a href="{% url 'prep:question_detail' a.question.pk %}">{{ a.question.text }}</a>
+        <span class="muted">{{ a.created_at|timesince }} ago</span>
+      </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+{% endblock %}

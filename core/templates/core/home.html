@@ -1,0 +1,75 @@
+{% extends "core/base.html" %}
+{% block title %}Home{% endblock %}
+{% block content %}
+<section class="hero">
+  <div>
+    <h1>Welcome back.</h1>
+    <p class="lede">
+      {% if due_count %}You have <strong>{{ due_count }}</strong> interview question{{ due_count|pluralize }} due for review{% if notes_this_week %}, and you've logged {{ notes_this_week }} project note{{ notes_this_week|pluralize }} this week{% endif %}.
+      {% elif notes_this_week %}You've logged {{ notes_this_week }} project note{{ notes_this_week|pluralize }} this week.
+      {% else %}Pick up where you left off.{% endif %}
+    </p>
+  </div>
+</section>
+
+{% include "core/_activity.html" %}
+
+<div class="hub-grid">
+  <a class="hub-card hub-prep" href="{% url 'prep:dashboard' %}">
+    <span class="hub-eyebrow">Interview Prep</span>
+    <h2>Stories &amp; practice</h2>
+    <p>STAR stories, a question library and timed practice with spaced repetition.</p>
+    <div class="hub-stats">
+      <span><strong>{{ due_count }}</strong> due</span>
+      <span><strong>{{ story_count }}</strong> stories</span>
+      <span><strong>{{ question_count }}</strong> questions</span>
+      <span><strong>{{ streak }}</strong> day streak</span>
+    </div>
+  </a>
+  <a class="hub-card hub-journal" href="{% url 'journal:project_list' %}">
+    <span class="hub-eyebrow">Projects</span>
+    <h2>Project journal</h2>
+    <p>Decisions, issues and AI use, linked to your commits, ready to pull into interview answers.</p>
+    <div class="hub-stats">
+      <span><strong>{{ project_count }}</strong> projects</span>
+      <span><strong>{{ note_count }}</strong> notes</span>
+      <span><strong>{{ notes_this_week }}</strong> this week</span>
+    </div>
+  </a>
+</div>
+
+<div class="grid-2">
+  <section class="card">
+    <h2>Active projects</h2>
+    {% if active_projects %}
+      <ul class="attempt-list">
+        {% for p in active_projects %}
+          <li>
+            <a href="{{ p.get_absolute_url }}">{{ p.name }}</a>
+            <span class="muted small">{{ p.note_count }} note{{ p.note_count|pluralize }}{% if p.last_commit %} · last commit {{ p.last_commit|timesince }} ago{% endif %}</span>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="muted">No active projects. <a href="{% url 'journal:project_create' %}">Add one</a>.</p>
+    {% endif %}
+  </section>
+
+  <section class="card">
+    <h2>Latest notes</h2>
+    {% if recent_notes %}
+      <ul class="attempt-list">
+        {% for n in recent_notes %}
+          <li>
+            <span class="kind-chip kind-{{ n.kind }}">{{ n.get_kind_display }}</span>
+            <a href="{{ n.get_absolute_url }}">{{ n.title }}</a>
+            <span class="muted small">{{ n.project.name }}</span>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="muted">Nothing logged yet. <a href="{% url 'journal:note_create' %}">Write your first note</a>.</p>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

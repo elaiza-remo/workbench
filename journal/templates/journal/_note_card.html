@@ -1,0 +1,14 @@
+<article class="note-card kind-{{ note.kind }}">
+  <div class="note-card-head">
+    <span class="kind-chip kind-{{ note.kind }}">{{ note.get_kind_display }}</span>
+    <h3><a href="{{ note.get_absolute_url }}">{{ note.title }}</a></h3>
+  </div>
+  {% if note.preview %}<p class="snippet">{{ note.preview|truncatewords:32 }}</p>{% endif %}
+  <p class="note-meta small muted">
+    {% if show_project %}<a href="{{ note.project.get_absolute_url }}">{{ note.project.name }}</a> · {% endif %}
+    {{ note.happened_on|date:"M j, Y" }}
+    {% if note.kind == "ai" and note.ai_tool %} · {{ note.ai_tool }}{% endif %}
+    {% with commits=note.commits.all %}{% if commits %} · {% for c in commits %}<code>{{ c.short_sha }}</code>{% if not forloop.last %} {% endif %}{% endfor %}{% endif %}{% endwith %}
+  </p>
+  {% include "prep/_tags.html" with tags=note.tags.all link_to="journal:note_list" %}
+</article>

@@ -1,0 +1,145 @@
+{% extends "prep/base.html" %}
+{% load static %}
+{% block title %}Practice{% endblock %}
+{% block content %}
+<form class="filters practice-filters" method="get" action="{% url 'prep:practice' %}">
+  <select name="mode" aria-label="Mode">
+    {% for value, label in modes %}<option value="{{ value }}" {% if value == filters.mode %}selected{% endif %}>{{ label }}{% if value == "due" %} ({{ due_count }}){% endif %}</option>{% endfor %}
+  </select>
+  <select name="category" aria-label="Category">
+    <option value="">Any category</option>
+    {% for value, label in categories %}<option value="{{ value }}" {% if value == filters.category %}selected{% endif %}>{{ label }}</option>{% endfor %}
+  </select>
+  <select name="tag" aria-label="Tag">
+    <option value="">Any tag</option>
+    {% for tag in tags %}<option value="{{ tag.name }}" {% if tag.name == filters.tag %}selected{% endif %}>{{ tag.name }}</option>{% endfor %}
+  </select>
+  {% if practice_projects %}
+  <select name="project" aria-label="Project">
+    <option value="">Any project</option>
+    {% for p in practice_projects %}<option value="{{ p.pk }}" {% if filters.project == p.pk|stringformat:"s" %}selected{% endif %}>{{ p.name }}</option>{% endfor %}
+  </select>
+  {% endif %}
+  <select name="seen" aria-label="Where you saw it">
+    {% for value, label in seen_choices %}<option value="{{ value }}" {% if value == filters.seen %}selected{% endif %}>{% if value %}{{ label }}{% else %}Any source{% endif %}</option>{% endfor %}
+  </select>
+  <button class="btn" type="submit">New question</button>
+</form>
+
+{% if question %}
+<div class="practice" id="practice"
+     data-feedback-url="{% url 'prep:practice_feedback' question.pk %}"
+     data-category="{{ question.category }}">
+
+  <section class="card question-card">
+    <span class="chip chip-{{ question.category }}">{{ question.get_category_display }}</span>
+    {% if question.project %}<a class="chip chip-project-name" href="{{ question.project.get_absolute_url }}">{{ question.project.name }}</a>{% endif %}
+    <h1 class="practice-question">{{ question.text }}</h1>
+    {% if sightings %}
+      <p class="seen-line small">
+        You've seen this {{ sightings|length }}×{% with names=question.companies %}{% if names %} · {{ names|join:", " }}{% endif %}{% endwith %}
+      </p>
+    {% endif %}
+    <p class="help">Answer out loud like you're in the room. Aim for about 2 minutes on behavioural questions.</p>
+
+    <div class="controls">
+      <div class="timer" aria-live="off">
+        <span id="timer-display" class="timer-display">0:00</span>
+        <button type="button" class="btn" id="timer-toggle">Start timer</button>
+        <button type="button" class="btn btn-quiet" id="timer-reset">Reset</button>
+      </div>
+      <div class="recorder">
+        <button type="button" class="btn" id="record-toggle"><span class="rec-dot"></span><span class="label">Record answer</span></button>
+        <span id="record-status" class="muted small" aria-live="polite"></span>
+      </div>
+    </div>
+    <audio id="playback" controls hidden></audio>
+  </section>
+
+  <section class="card">
+    <label for="answer-box" class="label-row">
+      <span>Your answer <span class="muted small">(optional — type it, or it fills in while you record in Chrome/Edge)</span></span>
+    </label>
+    <textarea id="answer-box" rows="6" placeholder="Jot down or transcribe what you said…"></textarea>
+    {% if ai_enabled %}
+      <div class="ai-row">
+        <button type="button" class="btn" id="ai-feedback-btn">Get AI feedback</button>
+        <span id="ai-status" class="muted small" aria-live="polite"></span>
+      </div>
+      <div id="ai-feedback" class="feedback-box" hidden></div>
+    {% endif %}
+  </section>
+
+  <details class="card reveal">
+    <summary>Reveal my notes &amp; stories</summary>
+    {% if source_note %}
+      <div class="from-note kind-border-{{ source_note.kind }}">
+        <h3 class="subhead">From your project notes · {{ source_note.happened_on|date:"M j, Y" }}</h3>
+        <p class="from-note-title"><a href="{{ source_note.get_absolute_url }}" target="_blank" rel="noopener">{{ source_note.title }}</a></p>
+        {% for label, text in source_note.sections %}
+          <p><strong>{{ label }}:</strong> {{ text|linebreaksbr }}</p>
+        {% endfor %}
+      </div>
+    {% endif %}
+    {% if question.notes %}
+      <h3 class="subhead">Notes</h3>
+      <p>{{ question.notes|linebreaksbr }}</p>
+    {% endif %}
+    {% if stories %}
+      {% for story in stories %}
+        <h3 class="subhead">{{ story.title }}</h3>
+        {% include "prep/_star.html" %}
+      {% endfor %}
+    {% elif question.category == "behavioral" %}
+      <p class="muted">No story for this yet. <a href="{% url 'prep:story_create' %}?question={{ question.pk }}">Write one</a> or <a href="{% url 'prep:question_update' question.pk %}">link one</a> so you have something to check against.</p>
+    {% endif %}
+    {% if not question.notes and not stories and not source_note and question.category != "behavioral" %}
+      <p class="muted">No notes for this one. <a href="{% url 'prep:question_update' question.pk %}">Add some</a>.</p>
+    {% endif %}
+  </details>
+
+  <form method="post" action="{% url 'prep:practice_rate' question.pk %}" class="card rate-form" id="rate-form">
+    {% csrf_token %}
+    <input type="hidden" name="mode" value="{{ filters.mode }}">
+    <input type="hidden" name="category" value="{{ filters.category }}">
+    <input type="hidden" name="tag" value="{{ filters.tag }}">
+    <input type="hidden" name="seen" value="{{ filters.seen }}">
+    <input type="hidden" name="project" value="{{ filters.project }}">
+    {{ form.duration_seconds }}{{ form.answer_text }}{{ form.ai_feedback }}
+
+    <fieldset class="ratings">
+      <legend>{{ form.rating.label }}</legend>
+      {% for radio in form.rating %}
+        <label class="rating-option r{{ radio.data.value }}">{{ radio.tag }}<span>{{ radio.choice_label }}</span></label>
+      {% endfor %}
+    </fieldset>
+    {% include "prep/_field.html" with field=form.notes %}
+    <div class="form-actions">
+      <button class="btn btn-primary" type="submit">Save &amp; next</button>
+      <a class="link-quiet" href="{% url 'prep:practice' %}?{{ skip_query }}">Skip</a>
+    </div>
+  </form>
+</div>
+
+{% elif not has_questions %}
+  <section class="card empty">
+    <h1>Nothing to practise yet</h1>
+    <p>Add some questions first, or load the starter set:</p>
+    <pre><code>python manage.py seed_questions</code></pre>
+    <a class="btn btn-primary" href="{% url 'prep:question_create' %}">Add a question</a>
+  </section>
+{% else %}
+  <section class="card empty">
+    <h1>All caught up 🎉</h1>
+    <p>
+      Nothing matching these filters is due right now.
+      {% if next_due %}The next review is {{ next_due|date:"D M j, g:i A" }}.{% endif %}
+    </p>
+    <a class="btn btn-primary" href="{% url 'prep:practice' %}?{{ random_query }}">Practise a random one anyway</a>
+  </section>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+  {% if question %}<script src="{% static 'prep/practice.js' %}"></script>{% endif %}
+{% endblock %}

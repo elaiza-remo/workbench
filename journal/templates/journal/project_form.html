@@ -1,0 +1,31 @@
+{% extends "journal/base.html" %}
+{% block title %}{% if project %}Edit project{% else %}New project{% endif %}{% endblock %}
+{% block content %}
+<p class="crumb"><a href="{% if project %}{{ project.get_absolute_url }}{% else %}{% url 'journal:project_list' %}{% endif %}">← Back</a></p>
+<h1>{% if project %}Edit project{% else %}New project{% endif %}</h1>
+
+<form method="post" class="form-card card">
+  {% csrf_token %}
+  {{ form.non_field_errors }}
+  <div class="grid-2 tight">
+    {% include "prep/_field.html" with field=form.name %}
+    {% include "prep/_field.html" with field=form.status %}
+  </div>
+  {% include "prep/_field.html" with field=form.description %}
+  <div class="grid-2 tight">
+    {% include "prep/_field.html" with field=form.tech_stack %}
+    {% include "prep/_field.html" with field=form.started_on %}
+  </div>
+
+  <fieldset class="seen-fieldset">
+    <legend>Git</legend>
+    {% include "prep/_field.html" with field=form.repo_url %}
+    {% include "prep/_field.html" with field=form.repo_path %}
+  </fieldset>
+
+  <div class="form-actions">
+    <button class="btn btn-primary" type="submit">Save project</button>
+    <a class="link-quiet" href="{% if project %}{{ project.get_absolute_url }}{% else %}{% url 'journal:project_list' %}{% endif %}">Cancel</a>
+  </div>
+</form>
+{% endblock %}

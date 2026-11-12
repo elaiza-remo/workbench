@@ -1,0 +1,30 @@
+{% extends "journal/base.html" %}
+{% block title %}{{ commit.short_sha }}{% endblock %}
+{% block content %}
+<p class="crumb"><a href="{{ commit.project.get_absolute_url }}?tab=commits">← {{ commit.project.name }} commits</a></p>
+
+<section class="card">
+  <p class="muted small"><code>{{ commit.sha }}</code></p>
+  <h1 class="commit-title">{{ commit.subject }}</h1>
+  {% if commit.body %}<pre class="commit-body">{{ commit.body }}</pre>{% endif %}
+  <p class="muted small">
+    {{ commit.author }} · {{ commit.committed_at|date:"D M j, Y, g:i A" }}
+    {% if commit.files_changed %} · {{ commit.files_changed }} file{{ commit.files_changed|pluralize }} · <span class="plus">+{{ commit.insertions }}</span> <span class="minus">−{{ commit.deletions }}</span>{% endif %}
+    {% if commit.remote_url %} · <a href="{{ commit.remote_url }}" target="_blank" rel="noopener">View on remote ↗</a>{% endif %}
+  </p>
+</section>
+
+<section class="card">
+  <h2>Notes on this commit</h2>
+  {% if notes %}
+    <div class="note-stack">{% for note in notes %}{% include "journal/_note_card.html" %}{% endfor %}</div>
+  {% else %}
+    <p class="muted">Nothing yet. Why did you make this change? Did anything go wrong? Did AI help?</p>
+  {% endif %}
+  <div class="actions section-actions">
+    {% for value, label in kinds %}
+      <a class="btn btn-small{% if forloop.first %} btn-primary{% endif %}" href="{% url 'journal:note_create' %}?commit={{ commit.pk }}&amp;kind={{ value }}">+ {{ label }}</a>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

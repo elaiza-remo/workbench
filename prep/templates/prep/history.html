@@ -1,0 +1,40 @@
+{% extends "prep/base.html" %}
+{% block title %}History{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Practice history</h1>
+  <form class="filters" method="get">
+    <select name="rating" aria-label="Filter by rating" onchange="this.form.submit()">
+      <option value="">All ratings</option>
+      {% for value, label in ratings %}<option value="{{ value }}" {% if active_rating == value|stringformat:"s" %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+    <noscript><button class="btn" type="submit">Filter</button></noscript>
+  </form>
+</div>
+
+{% if attempts %}
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>When</th><th>Question</th><th>Rating</th><th>Time</th><th>Notes</th></tr></thead>
+      <tbody>
+        {% for a in attempts %}
+          <tr>
+            <td class="nowrap">{{ a.created_at|date:"M j, g:i A" }}</td>
+            <td><a href="{% url 'prep:question_detail' a.question.pk %}">{{ a.question.text }}</a></td>
+            <td><span class="rating-pill r{{ a.rating }}">{{ a.rating_short }}</span></td>
+            <td>{{ a.duration_display }}</td>
+            <td>
+              {{ a.notes|default:""|truncatewords:20 }}
+              {% if a.ai_feedback %}
+                <details class="inline-details"><summary>AI feedback</summary><div class="feedback-text">{{ a.ai_feedback|linebreaksbr }}</div></details>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <div class="empty"><p>Nothing here yet. <a href="{% url 'prep:practice' %}">Start a practice run</a>.</p></div>
+{% endif %}
+{% endblock %}

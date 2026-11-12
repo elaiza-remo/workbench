@@ -1,0 +1,41 @@
+{% extends "prep/base.html" %}
+{% block title %}{{ story.title }}{% endblock %}
+{% block content %}
+<p class="crumb"><a href="{% url 'prep:story_list' %}">← Stories</a></p>
+<div class="page-head">
+  <div>
+    <h1>{{ story.title }}</h1>
+    <p class="muted">
+      {% if story.project %}<a href="{{ story.project.get_absolute_url }}">{{ story.project.name }}</a> · {% endif %}
+      updated {{ story.updated_at|date:"M j, Y" }}
+    </p>
+    {% include "prep/_tags.html" with tags=story.tags.all link_to="prep:story_list" %}
+  </div>
+  <div class="actions">
+    <a class="btn" href="{% url 'prep:story_update' story.pk %}">Edit</a>
+    <a class="btn btn-danger-quiet" href="{% url 'prep:story_delete' story.pk %}">Delete</a>
+  </div>
+</div>
+
+<section class="card">{% include "prep/_star.html" %}</section>
+
+{% if story.brainstorm %}
+<details class="card brainstorm-notes">
+  <summary>Brainstorm notes</summary>
+  <div class="brainstorm-text">{{ story.brainstorm|linebreaksbr }}</div>
+</details>
+{% endif %}
+
+<section class="card">
+  <h2>Questions this story answers</h2>
+  {% with qs=story.questions.all %}
+    {% if qs %}
+      <ul class="plain-list">
+        {% for q in qs %}<li><a href="{{ q.get_absolute_url }}">{{ q.text }}</a> <a class="link-quiet small" href="{% url 'prep:practice' %}?question={{ q.pk }}">practise →</a></li>{% endfor %}
+      </ul>
+    {% else %}
+      <p class="muted">Not linked to any questions yet. <a href="{% url 'prep:story_update' story.pk %}">Attach one</a>.</p>
+    {% endif %}
+  {% endwith %}
+</section>
+{% endblock %}

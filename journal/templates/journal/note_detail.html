@@ -1,0 +1,82 @@
+{% extends "journal/base.html" %}
+{% block title %}{{ note.title }}{% endblock %}
+{% block content %}
+<p class="crumb"><a href="{{ note.project.get_absolute_url }}">← {{ note.project.name }}</a></p>
+<div class="page-head">
+  <div>
+    <span class="kind-chip kind-{{ note.kind }}">{{ note.get_kind_display }}</span>
+    <h1 class="note-title">{{ note.title }}</h1>
+    <p class="muted small">
+      {{ note.happened_on|date:"D M j, Y" }}
+      {% if note.kind == "ai" and note.ai_tool %} · {{ note.ai_tool }}{% endif %}
+    </p>
+    {% include "prep/_tags.html" with tags=note.tags.all link_to="journal:note_list" %}
+  </div>
+  <div class="actions">
+    <form method="post" action="{% url 'journal:note_to_story' note.pk %}">
+      {% csrf_token %}
+      <button class="btn btn-primary" type="submit" title="Creates a STAR draft from this note">Turn into interview story</button>
+    </form>
+    <a class="btn" href="{% url 'journal:project_questions' note.project.pk %}?note={{ note.pk }}">Add to practice</a>
+    <a class="btn" href="{% url 'journal:note_update' note.pk %}">Edit</a>
+    <a class="btn btn-danger-quiet" href="{% url 'journal:note_delete' note.pk %}">Delete</a>
+  </div>
+</div>
+
+<section class="card note-body kind-border-{{ note.kind }}">
+  {% for label, text in note.sections %}
+    <div class="note-section">
+      <h2 class="subhead">{{ label }}</h2>
+      <p>{{ text|linebreaksbr }}</p>
+    </div>
+  {% empty %}
+    <p class="muted">No details written yet. <a href="{% url 'journal:note_update' note.pk %}">Add some</a>.</p>
+  {% endfor %}
+</section>
+
+<div class="grid-2">
+  <section class="card">
+    <h2>Commits</h2>
+    {% if commits %}
+      <ul class="plain-list commit-mini">
+        {% for c in commits %}<li><a href="{{ c.get_absolute_url }}"><code>{{ c.short_sha }}</code></a> {{ c.subject }}</li>{% endfor %}
+      </ul>
+    {% else %}
+      <p class="muted small">Not linked to any commits. <a href="{% url 'journal:note_update' note.pk %}">Link some</a>.</p>
+    {% endif %}
+  </section>
+  <section class="card">
+    <h2>Interview stories</h2>
+    {% if stories %}
+      <ul class="plain-list">{% for s in stories %}<li><a href="{{ s.get_absolute_url }}">{{ s.title }}</a></li>{% endfor %}</ul>
+    {% else %}
+      <p class="muted small">None yet. "Turn into interview story" drafts one in STAR format from this note.</p>
+    {% endif %}
+  </section>
+</div>
+
+<details class="card">
+  <summary class="summary-strong">Copy as Markdown</summary>
+  <div class="copy-row">
+    <button type="button" class="btn btn-small" id="copy-md">Copy</button>
+    <span id="copy-status" class="muted small" aria-live="polite"></span>
+  </div>
+  <textarea id="md-text" rows="12" readonly>{{ markdown }}</textarea>
+</details>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.getElementById("copy-md").addEventListener("click", async () => {
+    const box = document.getElementById("md-text");
+    const status = document.getElementById("copy-status");
+    try {
+      await navigator.clipboard.writeText(box.value);
+      status.textContent = "Copied.";
+    } catch (_) {
+      box.select();
+      status.textContent = "Press ⌘C / Ctrl+C to copy.";
+    }
+  });
+</script>
+{% endblock %}

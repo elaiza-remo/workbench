@@ -1,0 +1,95 @@
+{% extends "journal/base.html" %}
+{% block title %}{% if note %}Edit note{% else %}New note{% endif %}{% endblock %}
+{% block content %}
+<p class="crumb"><a href="{{ back_url }}">← Back</a></p>
+<h1>{% if note %}Edit note{% else %}New note{% endif %}</h1>
+
+<form method="post" class="form-card card note-form" id="note-form">
+  {% csrf_token %}
+  {{ form.non_field_errors }}
+
+  <fieldset class="kind-picker">
+    <legend>What are you logging?</legend>
+    {% for radio in form.kind %}
+      <label class="kind-option kind-{{ radio.data.value }}">{{ radio.tag }}<span>{{ radio.choice_label }}</span></label>
+    {% endfor %}
+  </fieldset>
+
+  <div class="grid-2 tight">
+    {% include "prep/_field.html" with field=form.project %}
+    {% include "prep/_field.html" with field=form.happened_on %}
+  </div>
+  {% include "prep/_field.html" with field=form.title %}
+  <div class="ai-only">{% include "prep/_field.html" with field=form.ai_tool %}</div>
+  <datalist id="ai-tools">{% for t in ai_tools %}<option value="{{ t }}">{% endfor %}</datalist>
+
+  {% for field in form %}{% if field.name == "context" or field.name == "details" or field.name == "outcome" %}
+    <div class="field{% if field.errors %} has-error{% endif %}">
+      <label for="{{ field.id_for_label }}" data-label-for="{{ field.name }}">{{ field.label }}</label>
+      <p class="help" data-help-for="{{ field.name }}"{% if not field.help_text %} hidden{% endif %}>{{ field.help_text }}</p>
+      {{ field }}
+      {% for error in field.errors %}<p class="error">{{ error }}</p>{% endfor %}
+    </div>
+  {% endif %}{% endfor %}
+
+  <div class="field">
+    <label>Related commits</label>
+    {% if form.commits.field.queryset.exists %}
+      <input type="search" class="commit-filter" id="commit-filter" placeholder="Filter commits…" aria-label="Filter commits">
+      <div class="checkbox-list commit-checklist" id="commit-checklist">
+        {% for cb in form.commits %}<label class="checkbox"><span>{{ cb.tag }}</span> <span class="cb-label">{{ cb.choice_label }}</span></label>{% endfor %}
+      </div>
+    {% elif form.project_id %}
+      <p class="help">No commits imported for this project yet. Set its repo folder and import them from the project's Commits tab.</p>
+    {% else %}
+      <p class="help">Choose a project and save; then you can link commits when you edit the note.</p>
+    {% endif %}
+  </div>
+
+  {% include "prep/_field.html" with field=form.tags_text %}
+  <datalist id="tag-suggestions">{% for tag in tags %}<option value="{{ tag.name }}">{% endfor %}</datalist>
+
+  <div class="form-actions">
+    <button class="btn btn-primary" type="submit">Save note</button>
+    <a class="link-quiet" href="{{ back_url }}">Cancel</a>
+  </div>
+</form>
+
+{{ labels|json_script:"note-labels" }}
+{% endblock %}
+
+{% block scripts %}
+<script>
+  (function () {
+    const labels = JSON.parse(document.getElementById("note-labels").textContent);
+    const form = document.getElementById("note-form");
+    const aiOnly = form.querySelector(".ai-only");
+
+    function apply() {
+      const checked = form.querySelector("input[name=kind]:checked");
+      const kind = checked ? checked.value : "decision";
+      const set = labels[kind] || labels.note;
+      for (const field of ["context", "details", "outcome"]) {
+        form.querySelector(`[data-label-for=${field}]`).textContent = set[field][0];
+        const help = form.querySelector(`[data-help-for=${field}]`);
+        help.textContent = set[field][1];
+        help.hidden = !set[field][1];
+      }
+      aiOnly.hidden = kind !== "ai";
+    }
+    form.querySelectorAll("input[name=kind]").forEach((r) => r.addEventListener("change", apply));
+    apply();
+
+    const filter = document.getElementById("commit-filter");
+    if (filter) {
+      filter.addEventListener("input", () => {
+        const term = filter.value.trim().toLowerCase();
+        document.querySelectorAll("#commit-checklist .checkbox").forEach((row) => {
+          row.hidden = term && !row.textContent.toLowerCase().includes(term);
+        });
+      });
+      filter.addEventListener("keydown", (e) => { if (e.key === "Enter") e.preventDefault(); });
+    }
+  })();
+</script>
+{% endblock %}

@@ -1,0 +1,73 @@
+{% extends "prep/base.html" %}
+{% block title %}Questions{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Question library</h1>
+  <div class="actions">
+    <a class="btn btn-primary" href="{% url 'prep:question_import' %}">Paste questions</a>
+    <a class="btn" href="{% url 'prep:question_create' %}">New question</a>
+  </div>
+</div>
+
+<form class="filters" method="get">
+  <input type="search" name="q" value="{{ q }}" placeholder="Search questions or companies…" aria-label="Search questions or companies">
+  <select name="category" aria-label="Filter by category">
+    <option value="">All categories</option>
+    {% for value, label in categories %}<option value="{{ value }}" {% if value == active_category %}selected{% endif %}>{{ label }}</option>{% endfor %}
+  </select>
+  <select name="seen" aria-label="Filter by where you saw it">
+    {% for value, label in seen_choices %}<option value="{{ value }}" {% if value == active_seen %}selected{% endif %}>{{ label }}</option>{% endfor %}
+  </select>
+  <select name="tag" aria-label="Filter by tag">
+    <option value="">All tags</option>
+    {% for tag in tags %}<option value="{{ tag.name }}" {% if tag.name == active_tag %}selected{% endif %}>{{ tag.name }}</option>{% endfor %}
+  </select>
+  {% if projects %}
+  <select name="project" aria-label="Filter by project">
+    <option value="">All projects</option>
+    {% for p in projects %}<option value="{{ p.pk }}" {% if active_project == p.pk|stringformat:"s" %}selected{% endif %}>{{ p.name }}</option>{% endfor %}
+  </select>
+  {% endif %}
+  <select name="sort" aria-label="Sort">
+    {% for value, label in sorts %}<option value="{{ value }}" {% if value == active_sort %}selected{% endif %}>Sort: {{ label }}</option>{% endfor %}
+  </select>
+  <button class="btn" type="submit">Apply</button>
+  {% if filtering or active_sort %}<a class="link-quiet" href="{% url 'prep:question_list' %}">Clear</a>{% endif %}
+</form>
+
+{% if questions %}
+  <ul class="question-rows">
+    {% for question in questions %}
+      <li class="question-row">
+        <div class="question-main">
+          <span class="chip chip-{{ question.category }}">{{ question.get_category_display }}</span>
+          <a class="question-text" href="{{ question.get_absolute_url }}">{{ question.text }}</a>
+          {% include "prep/_tags.html" with tags=question.tags.all link_to="prep:question_list" %}
+          {% if question.sighting_count %}
+            <p class="seen-line small">
+              Seen {{ question.sighting_count }}×{% with names=question.companies %}{% if names %} · {{ names|join:", " }}{% endif %}{% endwith %}
+            </p>
+          {% endif %}
+        </div>
+        <div class="question-meta">
+          {% if question.category == "behavioral" %}
+            {% if question.story_count %}<span class="muted small">{{ question.story_count }} stor{{ question.story_count|pluralize:"y,ies" }}</span>
+            {% else %}<span class="badge badge-warn">no story</span>{% endif %}
+          {% endif %}
+          {% if question.is_due %}<span class="badge badge-due">due</span>{% endif %}
+          <a class="btn btn-small" href="{% url 'prep:practice' %}?question={{ question.pk }}">Practise</a>
+        </div>
+      </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <div class="empty">
+    {% if filtering %}
+      <p>No questions match those filters.</p>
+    {% else %}
+      <p>No questions yet. Paste in ones you've been asked, or run <code>python manage.py seed_questions</code> for a starter set.</p>
+      <a class="btn btn-primary" href="{% url 'prep:question_import' %}">Paste questions</a>
+    {% endif %}
+  </div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,60 @@
+<section class="card activity" aria-labelledby="activity-title">
+  <div class="activity-head">
+    <h2 id="activity-title"><span class="activity-total">{{ graph.total }}</span> contribution{{ graph.total|pluralize }} in the last year</h2>
+    <p class="activity-streaks small muted">
+      <span><strong>{{ graph.current_streak }}</strong> day current streak</span>
+      <span><strong>{{ graph.longest_streak }}</strong> day longest</span>
+      <span><strong>{{ graph.active_days }}</strong> active days</span>
+    </p>
+  </div>
+
+  <div class="activity-scroll" id="activity-scroll">
+    <div class="ag" style="--weeks: {{ graph.weeks }}">
+      <div class="ag-months" aria-hidden="true">
+        {% for m in graph.months %}<span style="grid-column: {{ m.col|add:1 }}">{{ m.label }}</span>{% endfor %}
+      </div>
+      <div class="ag-days" aria-hidden="true"><span></span><span>Mon</span><span></span><span>Wed</span><span></span><span>Fri</span><span></span></div>
+      <div class="ag-grid" role="img" aria-label="{{ graph.total }} contributions in the last year: {% for b in graph.breakdown %}{{ b.count }} {{ b.label }}{% if not forloop.last %}, {% endif %}{% endfor %}">
+        {% for week in graph.columns %}
+          <div class="ag-week">
+            {% for cell in week %}
+              {% if cell %}<span class="ag-cell l{{ cell.level }}" data-tip="{{ cell.label }}"></span>{% else %}<span class="ag-cell ag-future"></span>{% endif %}
+            {% endfor %}
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <div class="activity-foot">
+    <p class="activity-breakdown small muted">
+      {% for b in graph.breakdown %}<span><strong>{{ b.count }}</strong> {{ b.label }}</span>{% endfor %}
+    </p>
+    <p class="ag-legend small muted" aria-hidden="true">
+      Less <span class="ag-cell l0"></span><span class="ag-cell l1"></span><span class="ag-cell l2"></span><span class="ag-cell l3"></span><span class="ag-cell l4"></span> More
+    </p>
+  </div>
+  <div class="ag-tip" id="ag-tip" role="tooltip" hidden></div>
+</section>
+
+<script>
+  (function () {
+    var scroll = document.getElementById("activity-scroll");
+    var tip = document.getElementById("ag-tip");
+    if (!scroll || !tip) return;
+    scroll.scrollLeft = scroll.scrollWidth;  // show the most recent weeks first on small screens
+    var card = tip.parentElement;
+    scroll.addEventListener("mouseover", function (e) {
+      var cell = e.target.closest(".ag-cell[data-tip]");
+      if (!cell) return;
+      tip.textContent = cell.dataset.tip;
+      tip.hidden = false;
+      var c = cell.getBoundingClientRect(), box = card.getBoundingClientRect();
+      var left = c.left - box.left + c.width / 2 - tip.offsetWidth / 2;
+      left = Math.max(8, Math.min(left, box.width - tip.offsetWidth - 8));
+      tip.style.left = left + "px";
+      tip.style.top = (c.top - box.top - tip.offsetHeight - 8) + "px";
+    });
+    scroll.addEventListener("mouseleave", function () { tip.hidden = true; });
+  })();
+</script>

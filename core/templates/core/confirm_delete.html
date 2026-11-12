@@ -1,0 +1,16 @@
+{% extends "core/base.html" %}
+{% block title %}Delete {{ kind }}{% endblock %}
+{% block no_tab %} data-no-tab="1"{% endblock %}
+{% block content %}
+<section class="card narrow">
+  <h1>Delete this {{ kind }}?</h1>
+  <p><strong>{{ obj }}</strong></p>
+  {% if warning %}<p class="muted">{{ warning }}</p>{% endif %}
+  {% if kind == "question" %}<p class="muted">Its practice history will be deleted too.</p>{% endif %}
+  <form method="post" class="form-actions" data-closes-tab="{{ cancel_url }}">
+    {% csrf_token %}
+    <button class="btn btn-danger" type="submit">Delete</button>
+    <a class="link-quiet" href="{{ cancel_url }}">Cancel</a>
+  </form>
+</section>
+{% endblock %}

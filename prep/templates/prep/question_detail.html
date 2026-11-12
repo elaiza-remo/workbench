@@ -1,0 +1,103 @@
+{% extends "prep/base.html" %}
+{% block title %}Question{% endblock %}
+{% block content %}
+<p class="crumb"><a href="{% url 'prep:question_list' %}">← Questions</a></p>
+<div class="page-head">
+  <div>
+    <span class="chip chip-{{ question.category }}">{{ question.get_category_display }}</span>
+    <h1 class="question-title">{{ question.text }}</h1>
+    {% include "prep/_tags.html" with tags=question.tags.all link_to="prep:question_list" %}
+  </div>
+  <div class="actions">
+    <a class="btn btn-primary" href="{% url 'prep:practice' %}?question={{ question.pk }}">Practise</a>
+    <a class="btn" href="{% url 'prep:question_update' question.pk %}">Edit</a>
+    <a class="btn btn-danger-quiet" href="{% url 'prep:question_delete' question.pk %}">Delete</a>
+  </div>
+</div>
+
+{% if question.project %}
+<p class="small from-line">
+  From your project <a href="{{ question.project.get_absolute_url }}">{{ question.project.name }}</a>{% if question.source_note %}, note <a href="{{ question.source_note.get_absolute_url }}">“{{ question.source_note.title }}”</a>{% endif %}
+</p>
+{% endif %}
+<p class="muted small">
+  {% if question.is_due %}Due for review now.{% else %}Next review {{ question.due_at|date:"D M j, g:i A" }}.{% endif %}
+  {% if question.repetitions %}Reviewed successfully {{ question.repetitions }} time{{ question.repetitions|pluralize }} in a row.{% endif %}
+</p>
+
+<section class="card">
+  <h2>Where you've seen it{% if sightings %} <span class="muted small">({{ sightings|length }}×)</span>{% endif %}</h2>
+  {% if sightings %}
+    <ul class="sighting-list">
+      {% for s in sightings %}
+        <li>
+          <span class="badge badge-{{ s.source }}">{{ s.source_short }}</span>
+          <span>{{ s.company|default:"No company noted" }}</span>
+          <span class="muted small">{{ s.seen_on|date:"M j, Y"|default:"" }}</span>
+          <form method="post" action="{% url 'prep:sighting_delete' s.pk %}" class="inline-form">
+            {% csrf_token %}
+            <button class="btn-link" type="submit" aria-label="Remove this entry">Remove</button>
+          </form>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="muted small">Not logged yet. If an interviewer asks this or it shows up on an application, log it here.</p>
+  {% endif %}
+  <form method="post" action="{% url 'prep:question_add_sighting' question.pk %}" class="sighting-form">
+    {% csrf_token %}
+    {% include "prep/_field.html" with field=sighting_form.source %}
+    {% include "prep/_field.html" with field=sighting_form.company %}
+    {% include "prep/_field.html" with field=sighting_form.seen_on %}
+    <button class="btn" type="submit">I saw this again</button>
+  </form>
+  <datalist id="company-suggestions">{% for c in companies %}<option value="{{ c }}">{% endfor %}</datalist>
+</section>
+
+{% if question.notes %}
+<section class="card">
+  <h2>Notes</h2>
+  <p>{{ question.notes|linebreaksbr }}</p>
+</section>
+{% endif %}
+
+<section class="card">
+  <h2>Stories for this question</h2>
+  {% if stories %}
+    {% for story in stories %}
+      <details class="story-details" {% if forloop.first %}open{% endif %}>
+        <summary>{{ story.title }}</summary>
+        {% include "prep/_star.html" %}
+        <a class="link-quiet small" href="{{ story.get_absolute_url }}">Open story →</a>
+      </details>
+    {% endfor %}
+  {% else %}
+    <p class="muted">No stories yet. Write one with this question pinned at the top, or link a story you already have.</p>
+  {% endif %}
+  <div class="actions section-actions">
+    <a class="btn btn-primary btn-small" href="{% url 'prep:story_create' %}?question={{ question.pk }}">Write a story for this</a>
+    <a class="btn btn-small" href="{% url 'prep:question_update' question.pk %}">Link an existing story</a>
+  </div>
+</section>
+
+<section class="card">
+  <h2>Practice history</h2>
+  {% if attempts %}
+    <table class="table">
+      <thead><tr><th>When</th><th>Rating</th><th>Time</th><th>Notes</th></tr></thead>
+      <tbody>
+        {% for a in attempts %}
+          <tr>
+            <td>{{ a.created_at|date:"M j, g:i A" }}</td>
+            <td><span class="rating-pill r{{ a.rating }}">{{ a.rating_short }}</span></td>
+            <td>{{ a.duration_display }}</td>
+            <td>{{ a.notes|default:"—"|truncatewords:25 }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="muted">You haven't practised this one yet.</p>
+  {% endif %}
+</section>
+{% endblock %}

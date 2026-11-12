@@ -1,0 +1,49 @@
+{% extends "prep/base.html" %}
+{% block title %}Stories{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Story bank</h1>
+  <a class="btn btn-primary" href="{% url 'prep:story_create' %}">New story</a>
+</div>
+
+<form class="filters" method="get">
+  <input type="search" name="q" value="{{ q }}" placeholder="Search stories…" aria-label="Search stories">
+  <select name="tag" aria-label="Filter by tag">
+    <option value="">All tags</option>
+    {% for tag in tags %}<option value="{{ tag.name }}" {% if tag.name == active_tag %}selected{% endif %}>{{ tag.name }}</option>{% endfor %}
+  </select>
+  <select name="project" aria-label="Filter by project">
+    <option value="">All projects</option>
+    {% for p in projects %}<option value="{{ p.pk }}" {% if active_project == p.pk|stringformat:"s" %}selected{% endif %}>{{ p.name }}</option>{% endfor %}
+  </select>
+  <button class="btn" type="submit">Filter</button>
+  {% if q or active_tag or active_project %}<a class="link-quiet" href="{% url 'prep:story_list' %}">Clear</a>{% endif %}
+</form>
+
+{% if stories %}
+  <div class="card-list">
+    {% for story in stories %}
+      <article class="card story-card">
+        <div class="story-card-head">
+          <h2><a href="{{ story.get_absolute_url }}">{{ story.title }}</a></h2>
+          {% if not story.is_complete %}<span class="badge badge-warn">needs {{ story.missing_parts|join:", " }}</span>{% endif %}
+        </div>
+        <p class="muted small">
+          {% if story.project %}{{ story.project.name }} · {% endif %}updated {{ story.updated_at|date:"M j, Y" }}
+        </p>
+        {% if story.result %}<p class="snippet"><strong>Result:</strong> {{ story.result|truncatewords:30 }}</p>{% endif %}
+        {% include "prep/_tags.html" with tags=story.tags.all link_to="prep:story_list" %}
+      </article>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="empty">
+    {% if q or active_tag or active_project %}
+      <p>No stories match those filters.</p>
+    {% else %}
+      <p>Your story bank is empty. Think of one project you're proud of and one time something went wrong. That's two stories.</p>
+      <a class="btn btn-primary" href="{% url 'prep:story_create' %}">Write your first story</a>
+    {% endif %}
+  </div>
+{% endif %}
+{% endblock %}

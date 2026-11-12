@@ -1,0 +1,99 @@
+{% load static %}<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Home{% endblock %} · {{ SITE_NAME }}</title>
+  <script>
+    try { var t = localStorage.getItem("theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch (e) {}
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="{% static 'core/style.css' %}">
+</head>
+<body class="section-{{ section }}{% if is_demo %} is-demo{% endif %}" data-section="{{ section }}" data-site-name="{{ SITE_NAME }}" data-user="{{ user.get_username }}"{% block no_tab %}{% endblock %}>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="sidebar-top">
+      <a class="brand" href="{% url 'home' %}">~/{{ SITE_NAME|lower }}<span class="cursor">_</span></a>
+      <button type="button" class="btn btn-quiet btn-small theme-toggle theme-toggle-mobile" data-theme-toggle>Light mode</button>
+    </div>
+
+    {% with name=request.resolver_match.url_name %}
+    <nav class="side-nav" aria-label="Main">
+      <a href="{% url 'home' %}" {% if section == 'home' %}aria-current="page"{% endif %}>Home</a>
+
+      <p class="side-label">interview prep</p>
+      <a href="{% url 'prep:dashboard' %}" {% if section == 'prep' and name == 'dashboard' %}aria-current="page"{% endif %}>Overview</a>
+      <a href="{% url 'prep:story_list' %}" {% if section == 'prep' and 'story' in name %}aria-current="page"{% endif %}>Stories</a>
+      <a href="{% url 'prep:question_list' %}" {% if section == 'prep' and 'question' in name %}aria-current="page"{% endif %}>Questions</a>
+      <a href="{% url 'prep:practice' %}" {% if section == 'prep' and name == 'practice' %}aria-current="page"{% endif %}>Practice</a>
+      <a href="{% url 'prep:history' %}" {% if section == 'prep' and name == 'history' %}aria-current="page"{% endif %}>History</a>
+
+      <p class="side-label">projects</p>
+      <a href="{% url 'journal:project_list' %}" {% if section == 'journal' and 'project' in name or section == 'journal' and 'commit' in name %}aria-current="page"{% endif %}>All projects</a>
+      <a href="{% url 'journal:note_list' %}" {% if section == 'journal' and name == 'note_list' or section == 'journal' and name == 'note_detail' or section == 'journal' and name == 'note_update' %}aria-current="page"{% endif %}>All notes</a>
+      <a class="side-cta" href="{% url 'journal:note_create' %}{% if project.pk %}?project={{ project.pk }}{% endif %}" {% if section == 'journal' and name == 'note_create' %}aria-current="page"{% endif %}>+ New note</a>
+    </nav>
+    {% endwith %}
+
+    <div class="sidebar-foot">
+      <div class="whoami">
+        <span class="whoami-label">signed in as</span>
+        <span class="whoami-name">{% if is_demo %}demo visitor{% else %}{{ user.get_username }}{% endif %}</span>
+      </div>
+      <form method="post" action="{% url 'logout' %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-quiet theme-toggle">{% if is_demo %}Exit demo{% else %}Log out{% endif %}</button>
+      </form>
+      <button type="button" class="btn btn-quiet theme-toggle" data-theme-toggle>Light mode</button>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="editor-bar">
+      <nav class="editor-tabs" id="editor-tabs" role="tablist" aria-label="Open pages"></nav>
+      <div class="editor-path" id="editor-path" aria-hidden="true"></div>
+    </div>
+    {% if is_demo %}
+      <div class="demo-banner" role="note">
+        <span><strong>Demo mode.</strong> Sample data that anyone can edit, reset every night.</span>
+        <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit" class="link-button">Exit demo and see how it was built</button></form>
+      </div>
+    {% endif %}
+    <main class="wrap">
+      {% if messages %}
+        <ul class="messages">
+          {% for message in messages %}<li class="msg msg-{{ message.tags }}">{{ message }}</li>{% endfor %}
+        </ul>
+      {% endif %}
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</div>
+
+<script>
+  (function () {
+    var root = document.documentElement;
+    var buttons = document.querySelectorAll("[data-theme-toggle]");
+    function current() { return root.dataset.theme === "light" ? "light" : "dark"; }
+    function label() {
+      var next = current() === "dark" ? "Light mode" : "Dark mode";
+      buttons.forEach(function (b) { b.textContent = next; });
+    }
+    buttons.forEach(function (b) {
+      b.addEventListener("click", function () {
+        var next = current() === "dark" ? "light" : "dark";
+        root.dataset.theme = next;
+        try { localStorage.setItem("theme", next); } catch (e) {}
+        label();
+      });
+    });
+    label();
+  })();
+</script>
+<script src="{% static 'core/tabs.js' %}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

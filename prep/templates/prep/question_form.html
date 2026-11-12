@@ -1,0 +1,45 @@
+{% extends "prep/base.html" %}
+{% block title %}{% if question %}Edit question{% else %}New question{% endif %}{% endblock %}
+{% block content %}
+<p class="crumb"><a href="{% if question %}{{ question.get_absolute_url }}{% else %}{% url 'prep:question_list' %}{% endif %}">← Back</a></p>
+<h1>{% if question %}Edit question{% else %}New question{% endif %}</h1>
+{% if not question %}<p class="muted">Got a whole list? <a href="{% url 'prep:question_import' %}">Paste them all at once</a>.</p>{% endif %}
+
+<form method="post" class="form-card card">
+  {% csrf_token %}
+  {{ form.non_field_errors }}
+  {% include "prep/_field.html" with field=form.text %}
+  {% include "prep/_field.html" with field=form.category %}
+  {% if not question %}
+    <fieldset class="seen-fieldset">
+      <legend>Where you saw it</legend>
+      <div class="grid-3">
+        {% include "prep/_field.html" with field=form.source %}
+        {% include "prep/_field.html" with field=form.company %}
+        {% include "prep/_field.html" with field=form.seen_on %}
+      </div>
+      <datalist id="company-suggestions">{% for c in companies %}<option value="{{ c }}">{% endfor %}</datalist>
+    </fieldset>
+  {% endif %}
+  {% include "prep/_field.html" with field=form.tags_text %}
+  <datalist id="tag-suggestions">{% for tag in tags %}<option value="{{ tag.name }}">{% endfor %}</datalist>
+
+  <div class="field">
+    <label>{{ form.stories.label }}</label>
+    {% if form.stories.field.queryset.exists %}
+      <div class="checkbox-list">
+        {% for cb in form.stories %}<label class="checkbox">{{ cb.tag }} {{ cb.choice_label }}</label>{% endfor %}
+      </div>
+    {% else %}
+      <p class="help">No stories yet. <a href="{% url 'prep:story_create' %}">Write one</a>, then come back to link it.</p>
+    {% endif %}
+  </div>
+
+  {% include "prep/_field.html" with field=form.notes %}
+
+  <div class="form-actions">
+    <button class="btn btn-primary" type="submit">Save question</button>
+    <a class="link-quiet" href="{% if question %}{{ question.get_absolute_url }}{% else %}{% url 'prep:question_list' %}{% endif %}">Cancel</a>
+  </div>
+</form>
+{% endblock %}

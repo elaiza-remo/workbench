@@ -1,0 +1,61 @@
+{% extends "journal/base.html" %}
+{% block title %}Projects{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Projects</h1>
+    <p class="lede">Log decisions, issues and AI use as you build, so you have real answers ready when an interviewer asks "why did you do it that way?"</p>
+  </div>
+  <a class="btn btn-primary" href="{% url 'journal:project_create' %}">New project</a>
+</div>
+
+<form class="filters" method="get">
+  <select name="status" aria-label="Filter by status" onchange="this.form.submit()">
+    <option value="">All statuses</option>
+    {% for value, label in statuses %}<option value="{{ value }}" {% if value == active_status %}selected{% endif %}>{{ label }}</option>{% endfor %}
+  </select>
+  <noscript><button class="btn" type="submit">Filter</button></noscript>
+</form>
+
+{% if projects %}
+  <div class="project-grid">
+    {% for p in projects %}
+      <article class="card project-card">
+        <div class="project-card-head">
+          <h2><a href="{{ p.get_absolute_url }}">{{ p.name }}</a></h2>
+          <span class="status-chip status-{{ p.status }}">{{ p.get_status_display }}</span>
+        </div>
+        {% if p.tech_stack %}<p class="tech small">{{ p.tech_stack }}</p>{% endif %}
+        {% if p.description %}<p class="snippet">{{ p.description|truncatewords:22 }}</p>{% endif %}
+        <p class="project-stats small">
+          <span><strong>{{ p.note_count }}</strong> note{{ p.note_count|pluralize }}</span>
+          <span><strong>{{ p.commit_count }}</strong> commit{{ p.commit_count|pluralize }}</span>
+          <span><strong>{{ p.story_count }}</strong> stor{{ p.story_count|pluralize:"y,ies" }}</span>
+        </p>
+        {% if p.last_commit %}<p class="muted small">Last commit {{ p.last_commit|timesince }} ago</p>{% endif %}
+      </article>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="empty">
+    {% if active_status %}
+      <p>No projects with that status.</p>
+    {% else %}
+      <p>No projects yet. Add one you're working on now, like this app.</p>
+      <a class="btn btn-primary" href="{% url 'journal:project_create' %}">Add a project</a>
+    {% endif %}
+  </div>
+{% endif %}
+
+{% if recent_notes %}
+<section class="card">
+  <div class="page-head tight-head">
+    <h2>Latest notes</h2>
+    <a class="link-quiet small" href="{% url 'journal:note_list' %}">All notes →</a>
+  </div>
+  <div class="note-stack">
+    {% for note in recent_notes %}{% include "journal/_note_card.html" with show_project=True %}{% endfor %}
+  </div>
+</section>
+{% endif %}
+{% endblock %}

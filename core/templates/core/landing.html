@@ -1,0 +1,200 @@
+{% load static %}<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ SITE_NAME }} · Interview prep built from the work you've actually done</title>
+  <meta name="description" content="{{ SITE_NAME }} turns your projects, commits and decisions into interview answers: a STAR story bank, timed practice with spaced repetition, and a project journal.">
+  <script>
+    try { var t = localStorage.getItem("theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch (e) {}
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="{% static 'core/style.css' %}">
+</head>
+<body class="landing">
+
+<header class="lp-nav">
+  <div class="lp-wrap lp-nav-inner">
+    <a class="brand" href="{% url 'home' %}">~/{{ SITE_NAME|lower }}<span class="cursor">_</span></a>
+    <nav class="lp-links" aria-label="Page">
+      <a href="#why">Why</a>
+      <a href="#features">Features</a>
+      <a href="#how">How it's built</a>
+      <a class="btn btn-small" href="{% url 'login' %}">Sign in</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <!-- ============================================================ hero -->
+  <section class="lp-hero lp-wrap">
+    <p class="lp-eyebrow">$ cat README.md</p>
+    <h1>Interview prep built from the work you've <span class="lp-accent">actually done</span>.</h1>
+    <p class="lp-lede">
+      {{ SITE_NAME }} is a personal workspace for job hunting as a developer: a STAR story bank,
+      timed practice that brings back the questions you're shaky on, and a project journal that
+      turns your commits and decisions into answers.
+    </p>
+    <div class="lp-ctas">
+      {% if demo_enabled %}
+        <form method="post" action="{% url 'demo_login' %}">
+          {% csrf_token %}
+          <button class="btn btn-primary lp-btn" type="submit">Try the live demo <span aria-hidden="true">→</span></button>
+        </form>
+      {% endif %}
+      <a class="btn lp-btn" href="#why">Why I built it</a>
+    </div>
+    {% if demo_enabled %}<p class="small muted lp-note">No sign-up. The demo is full of sample data, and it resets every night.</p>{% endif %}
+
+    {% if preview_graph %}
+      <div class="lp-graph">
+        <p class="lp-graph-caption"><span class="lp-pill">live from the demo</span> a year of prep and building, one square per day</p>
+        {% include "core/_activity.html" with graph=preview_graph %}
+      </div>
+    {% endif %}
+  </section>
+
+  <!-- ============================================================ why -->
+  {# This section is written in your voice. Edit it freely: it's the part people remember. #}
+  <section class="lp-section lp-wrap" id="why">
+    <p class="lp-eyebrow">// why I built this</p>
+    <h2>The best interview answers were already in my projects. I just couldn't find them when I needed them.</h2>
+    <div class="lp-why">
+      <div class="lp-why-text">
+        <p>
+          When I started interviewing for junior developer roles, I kept running into the same problem.
+          Interviewers asked things like <em>"Tell me about a technical challenge you faced"</em> or
+          <em>"Why did you build it that way?"</em> I'd done the work, but the details were scattered
+          across commits, half-remembered bugs and old notes.
+        </p>
+        <p>
+          So I built the tool I wanted: one place to write my stories in STAR format and practise them
+          out loud, and a journal to capture <strong>why</strong> I made each decision on my projects, what broke,
+          and where AI helped, right next to the commits where it happened.
+        </p>
+        <p>
+          I like building things that make people's lives a little easier. This one started by making mine easier.
+        </p>
+        <p class="lp-sign">— {% if owner_url %}<a href="{{ owner_url }}" target="_blank" rel="noopener">{{ owner_name }}</a>{% else %}{{ owner_name }}{% endif %}</p>
+      </div>
+      <ul class="lp-problems">
+        <li><span class="lp-x">×</span> Blanking on "tell me about a time when…"</li>
+        <li><span class="lp-x">×</span> Forgetting <em>why</em> a project decision was made</li>
+        <li><span class="lp-x">×</span> Practising the easy questions and avoiding the hard ones</li>
+        <li><span class="lp-check">✓</span> Stories, decisions and practice in one place</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ============================================================ features -->
+  <section class="lp-section lp-wrap" id="features">
+    <p class="lp-eyebrow">// what it does</p>
+    <h2>Two halves that feed each other</h2>
+    <div class="lp-features">
+      <article class="lp-feature">
+        <span class="lp-icon kind-decision" aria-hidden="true">S·T·A·R</span>
+        <h3>Story bank</h3>
+        <p>Write behavioural answers as Situation, Task, Action and Result, with a brainstorm space beside them. Tag stories by theme and see which themes you haven't covered.</p>
+      </article>
+      <article class="lp-feature">
+        <span class="lp-icon kind-ai" aria-hidden="true">0:42</span>
+        <h3>Practice mode</h3>
+        <p>Timed questions, voice recording with playback, and live transcription. Rate each answer and spaced repetition brings back the shaky ones sooner.</p>
+      </article>
+      <article class="lp-feature">
+        <span class="lp-icon kind-learning" aria-hidden="true">a1b2c3d</span>
+        <h3>Project journal</h3>
+        <p>Log decisions, issues and fixes, AI usage and lessons learned, linked to commits imported from GitHub. Filter them and export them as Markdown.</p>
+      </article>
+      <article class="lp-feature">
+        <span class="lp-icon kind-issue" aria-hidden="true">→ Q</span>
+        <h3>From commits to answers</h3>
+        <p>Turn a note into a STAR draft in one click, or generate the questions an interviewer would ask about a project and practise them.</p>
+      </article>
+      <article class="lp-feature">
+        <span class="lp-icon kind-note" aria-hidden="true">Q1.</span>
+        <h3>Question library</h3>
+        <p>Paste questions from job postings or right after an interview. Workbench cleans them up, sorts them by type, and tracks which companies asked what.</p>
+      </article>
+      <article class="lp-feature">
+        <span class="lp-icon kind-decision" aria-hidden="true">▦</span>
+        <h3>Contributions graph</h3>
+        <p>A GitHub-style year of activity across commits, notes, practice and stories, with streaks, so you can see the habit build.</p>
+      </article>
+    </div>
+  </section>
+
+  <!-- ============================================================ how -->
+  <section class="lp-section lp-wrap" id="how">
+    <p class="lp-eyebrow">// how it's built</p>
+    <h2>A small, real Django app</h2>
+    <div class="lp-stack">
+      <div class="lp-terminal" role="img" aria-label="Tech stack summary">
+        <p><span class="lp-prompt">$</span> workbench --stack</p>
+        <p><span class="muted">backend </span>  Django 5 · Python</p>
+        <p><span class="muted">database</span>  PostgreSQL on Supabase</p>
+        <p><span class="muted">hosting </span>  Vercel (serverless functions + cron)</p>
+        <p><span class="muted">frontend</span>  Server-rendered templates, vanilla JS and CSS</p>
+        <p><span class="muted">tests   </span>  Django test suite, run on every change</p>
+      </div>
+      <ul class="lp-points">
+        <li><strong>Per-user data.</strong> Every query is scoped to the signed-in account, which is what lets a public demo sit safely beside private data.</li>
+        <li><strong>Commit import.</strong> Reads a local repo with <code>git log</code>, or pulls from the GitHub API when hosted.</li>
+        <li><strong>Spaced repetition.</strong> A simplified SM-2 algorithm decides when each question comes back.</li>
+        <li><strong>Nightly reset.</strong> A Vercel cron job re-seeds the demo with fresh sample data.</li>
+        <li><strong>No framework front end.</strong> IDE-style tabs, the activity graph and practice timer are plain JavaScript.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ============================================================ cta -->
+  <section class="lp-section lp-wrap">
+    <div class="lp-cta-band">
+      <div>
+        <h2>See it with real-looking data</h2>
+        <p class="muted">Three sample projects, a year of activity, and stories ready to practise. Click anything, change anything.</p>
+      </div>
+      {% if demo_enabled %}
+        <form method="post" action="{% url 'demo_login' %}">
+          {% csrf_token %}
+          <button class="btn btn-primary lp-btn" type="submit">Try the live demo <span aria-hidden="true">→</span></button>
+        </form>
+      {% else %}
+        <a class="btn btn-primary lp-btn" href="{% url 'login' %}">Sign in</a>
+      {% endif %}
+    </div>
+  </section>
+</main>
+
+<footer class="lp-footer">
+  <div class="lp-wrap lp-footer-inner">
+    <span><code>~/{{ SITE_NAME|lower }}</code> · built by {% if owner_url %}<a href="{{ owner_url }}" target="_blank" rel="noopener">{{ owner_name }}</a>{% else %}{{ owner_name }}{% endif %}</span>
+    <span class="lp-footer-links">
+      {% if repo_url %}<a href="{{ repo_url }}" target="_blank" rel="noopener">Source on GitHub ↗</a>{% endif %}
+      <a href="{% url 'login' %}">Sign in</a>
+      <button type="button" class="link-button" data-theme-toggle>Light mode</button>
+    </span>
+  </div>
+</footer>
+
+<script>
+  (function () {
+    var root = document.documentElement;
+    var buttons = document.querySelectorAll("[data-theme-toggle]");
+    function current() { return root.dataset.theme === "light" ? "light" : "dark"; }
+    function label() { buttons.forEach(function (b) { b.textContent = current() === "dark" ? "Light mode" : "Dark mode"; }); }
+    buttons.forEach(function (b) {
+      b.addEventListener("click", function () {
+        var next = current() === "dark" ? "light" : "dark";
+        root.dataset.theme = next;
+        try { localStorage.setItem("theme", next); } catch (e) {}
+        label();
+      });
+    });
+    label();
+  })();
+</script>
+</body>
+</html>

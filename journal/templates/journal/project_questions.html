@@ -1,0 +1,60 @@
+{% extends "journal/base.html" %}
+{% block title %}Practice questions · {{ project.name }}{% endblock %}
+{% block content %}
+<p class="crumb"><a href="{% if note %}{{ note.get_absolute_url }}{% else %}{{ project.get_absolute_url }}{% endif %}">← {% if note %}{{ note.title }}{% else %}{{ project.name }}{% endif %}</a></p>
+<div class="page-head">
+  <div>
+    <h1>Practice questions{% if not note %} for {{ project.name }}{% endif %}</h1>
+    <p class="lede">
+      {% if note %}A question an interviewer could ask about this note.
+      {% else %}Questions an interviewer could ask about this project, built from your {{ note_count }} journal note{{ note_count|pluralize }}.{% endif %}
+      Edit the wording until it sounds like a real interviewer, then add them to practice mode.
+    </p>
+  </div>
+  {% if question_count %}
+    <a class="btn" href="{% url 'prep:practice' %}?project={{ project.pk }}&amp;mode=random">Practise the {{ question_count }} you have</a>
+  {% endif %}
+</div>
+
+{% if not note and not note_count %}
+  <section class="card callout">
+    <p>You haven't logged any decisions, issues or AI notes for {{ project.name }} yet, so these are general questions for now. Each note you add gives you a more specific question.</p>
+    <a class="btn btn-small" href="{% url 'journal:note_create' %}?project={{ project.pk }}">Add a note</a>
+  </section>
+{% endif %}
+
+<form method="post" class="card">
+  {% csrf_token %}
+  {% if note %}<input type="hidden" name="note" value="{{ note.pk }}">{% endif %}
+  <p class="muted small">{{ new_count }} new of {{ suggestions|length }}. Questions already in your library are unticked.</p>
+
+  <ul class="preview-rows">
+    {% for s in suggestions %}
+      <li class="preview-row gen-row{% if s.existing %} is-existing{% endif %}">
+        <label class="preview-check" title="Add this question">
+          <input type="checkbox" name="row_include" value="{{ forloop.counter0 }}" {% if not s.existing %}checked{% endif %}>
+          <span class="visually-hidden">Add</span>
+        </label>
+        <div class="preview-main">
+          <textarea name="row_text" rows="2" aria-label="Question {{ forloop.counter }}">{{ s.text }}</textarea>
+          <input type="hidden" name="row_note" value="{{ s.note.pk|default:'' }}">
+          <p class="small muted">
+            {% if s.note %}
+              <span class="kind-chip kind-{{ s.note.kind }}">{{ s.reason }}</span>
+              From <a href="{{ s.note.get_absolute_url }}" target="_blank" rel="noopener">{{ s.note.title }}</a>
+            {% else %}
+              <span class="kind-chip kind-note">{{ s.reason }}</span>
+            {% endif %}
+            {% if s.existing %} · Already added as <a href="{{ s.existing.get_absolute_url }}">“{{ s.existing.text|truncatechars:70 }}”</a>{% endif %}
+          </p>
+        </div>
+      </li>
+    {% endfor %}
+  </ul>
+
+  <div class="form-actions">
+    <button class="btn btn-primary" type="submit">Add to practice</button>
+    <a class="link-quiet" href="{% if note %}{{ note.get_absolute_url }}{% else %}{{ project.get_absolute_url }}{% endif %}">Cancel</a>
+  </div>
+</form>
+{% endblock %}

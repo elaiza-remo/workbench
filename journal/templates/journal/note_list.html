@@ -1,0 +1,53 @@
+{% extends "journal/base.html" %}
+{% block title %}Notes{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>All notes</h1>
+    <p class="lede">Every decision, issue and AI note across your projects. Filter, then export the ones you need.</p>
+  </div>
+  <a class="btn" href="{% url 'journal:note_export' %}{% if export_query %}?{{ export_query }}{% endif %}">Export {% if filtering %}these {% endif %}as Markdown ↓</a>
+</div>
+
+<div class="kind-filter">
+  <a href="?" class="kind-pill{% if not filters.kind %} is-active{% endif %}">All</a>
+  {% for value, label, n in kind_counts %}
+    <a href="?kind={{ value }}{% if filters.project %}&amp;project={{ filters.project }}{% endif %}" class="kind-pill kind-{{ value }}{% if filters.kind == value %} is-active{% endif %}">{{ label }} <span>{{ n }}</span></a>
+  {% endfor %}
+</div>
+
+<form class="filters" method="get">
+  <input type="search" name="q" value="{{ filters.q }}" placeholder="Search notes and commit messages…" aria-label="Search notes">
+  <input type="hidden" name="kind" value="{{ filters.kind }}">
+  <select name="project" aria-label="Project">
+    <option value="">All projects</option>
+    {% for p in projects %}<option value="{{ p.pk }}" {% if filters.project == p.pk|stringformat:"s" %}selected{% endif %}>{{ p.name }}</option>{% endfor %}
+  </select>
+  {% if tags %}
+  <select name="tag" aria-label="Tag">
+    <option value="">All tags</option>
+    {% for t in tags %}<option value="{{ t.name }}" {% if filters.tag == t.name %}selected{% endif %}>{{ t.name }}</option>{% endfor %}
+  </select>
+  {% endif %}
+  {% if tools %}
+  <select name="tool" aria-label="AI tool">
+    <option value="">Any AI tool</option>
+    {% for t in tools %}<option value="{{ t }}" {% if filters.tool|lower == t|lower %}selected{% endif %}>{{ t }}</option>{% endfor %}
+  </select>
+  {% endif %}
+  <button class="btn" type="submit">Filter</button>
+  {% if filtering %}<a class="link-quiet" href="{% url 'journal:note_list' %}">Clear</a>{% endif %}
+</form>
+
+{% if notes %}
+  <div class="note-stack">
+    {% for note in notes %}{% include "journal/_note_card.html" with show_project=True %}{% endfor %}
+  </div>
+{% else %}
+  <div class="empty">
+    {% if filtering %}<p>No notes match those filters.</p>
+    {% else %}<p>No notes yet. Pick a project and log the last decision you made.</p>
+      <a class="btn btn-primary" href="{% url 'journal:note_create' %}">New note</a>{% endif %}
+  </div>
+{% endif %}
+{% endblock %}
