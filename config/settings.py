@@ -44,11 +44,12 @@ REPO_URL = os.environ.get("REPO_URL", "")        # this project's GitHub repo, i
 
 DEBUG = env_bool("DJANGO_DEBUG", default=not ON_VERCEL)
 
-SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "")
-if not SECRET_KEY:
-    if not DEBUG:
-        raise RuntimeError("Set DJANGO_SECRET_KEY (any long random string) before running with DEBUG off.")
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "").strip()
+if not SECRET_KEY and DEBUG:
     SECRET_KEY = "dev-only-insecure-key"
+# With debug off and no key, SECRET_KEY stays empty: settings still load (so Vercel's
+# build can read them), but Django refuses to sign anything until the key is set,
+# with "The SECRET_KEY setting must not be empty." Nothing runs with a guessable key.
 
 ALLOWED_HOSTS = [h for h in os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",") if h]
 CSRF_TRUSTED_ORIGINS = [o for o in os.environ.get("DJANGO_CSRF_TRUSTED_ORIGINS", "").split(",") if o]
@@ -111,9 +112,22 @@ WSGI_APPLICATION = "config.wsgi.application"
 # Hosted: DATABASE_URL = Supabase's *transaction pooler* URI (port 6543).
 
 def _database_from_url(url):
-    parsed = urlparse(url)
+    # Forgive common copy-paste slips: surrounding quotes/spaces, or pasting "DATABASE_URL=..." as the value.
+    url = url.strip().strip('"').strip("'").strip()
+    if url.startswith("DATABASE_URL="):
+        url = url[len("DATABASE_URL="):].strip()
+    if "[YOUR-PASSWORD]" in url or "YOUR-PASSWORD" in url:
+        raise RuntimeError("DATABASE_URL still contains the [YOUR-PASSWORD] placeholder. Put your Supabase database password there.")
+    try:
+        parsed = urlparse(url)
+        parsed.port  # raises ValueError on a malformed host/port
+    except ValueError as e:
+        raise RuntimeError(
+            "DATABASE_URL couldn't be read. If your password has symbols like @ # ? / [ ], "
+            "replace them with %40 %23 %3F %2F %5B %5D, or reset it to letters and numbers only."
+        ) from e
     if parsed.scheme not in ("postgres", "postgresql"):
-        raise RuntimeError("DATABASE_URL must be a postgres:// or postgresql:// URL.")
+        raise RuntimeError("DATABASE_URL must start with postgresql:// (copy it from Supabase → Connect).")
     query = {k: v[-1] for k, v in parse_qs(parsed.query).items()}
     pooled = parsed.port == 6543  # Supabase transaction pooler
     options = {"sslmode": query.get("sslmode", "require")}
